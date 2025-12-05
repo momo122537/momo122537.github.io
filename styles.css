@@ -21,9 +21,15 @@ h1{ margin:0 0 16px 0; font-size:24px; }
 .status{ margin-bottom:12px; }
 
 .board{
-display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;
-background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-padding:12px; border-radius:14px; width:min(560px, 92%); aspect-ratio:1/1;
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    padding:12px;
+    border-radius:14px;
+    width:min(560px, 92%);
+    aspect-ratio:1/1;
+    margin: 0 auto; /* 加這行就會水平置中 */
 }
 
 .cell{
@@ -61,6 +67,7 @@ padding:12px; border-radius:14px; width:min(560px, 92%); aspect-ratio:1/1;
 button{ padding:8px 12px; border-radius:10px; border:0;
 background:#21264a; color:var(--text); cursor:pointer; }
 button:disabled{ opacity:.5; cursor:not-allowed; }
+
 
 
 

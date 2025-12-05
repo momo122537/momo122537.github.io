@@ -32,7 +32,7 @@ padding:12px; border-radius:14px; width:min(560px, 92%); aspect-ratio:1/1;
     height: 100%; 
     /* 與父層一致 */
     border-radius:10px; 
-    background:linear-gradient(180deg,#6A6AFF,#ECECFF); 
+    background:linear-gradient(180deg,#AAAAFF	,#ECECFF); 
     border:1px solid rgba(255,255,255,0.03);
     font-size:48px; 
     font-weight:800;
@@ -61,4 +61,5 @@ padding:12px; border-radius:14px; width:min(560px, 92%); aspect-ratio:1/1;
 button{ padding:8px 12px; border-radius:10px; border:0;
 background:#21264a; color:var(--text); cursor:pointer; }
 button:disabled{ opacity:.5; cursor:not-allowed; }
+
 

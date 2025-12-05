@@ -10,11 +10,13 @@
     <main class="container">
       <h1>XO 井字棋</h1>
 
+      <!-- 狀態列：兩行顯示 -->
       <div class="status">
         <span>目前輪到：<strong id="turn">X</strong></span>
         <span id="state"></span>
       </div>
 
+      <!-- 棋盤 -->
       <section id="board" class="board" aria-label="井字棋棋盤">
         <button class="cell" data-idx="0"></button>
         <button class="cell" data-idx="1"></button>
@@ -27,12 +29,19 @@
         <button class="cell" data-idx="8"></button>
       </section>
 
-      <!-- 計分板 -->
+      <!-- 計分板（美化版） -->
       <div class="scoreboard">
         <h2>計分板</h2>
-        <p>X 勝場：<span id="score-x">0</span></p>
-        <p>O 勝場：<span id="score-o">0</span></p>
-        <p>平手次數：<span id="score-draw">0</span></p>
+        <div class="score-grid">
+          <span class="score-label">X 勝場</span>
+          <span class="score-value" id="score-x">0</span>
+
+          <span class="score-label">O 勝場</span>
+          <span class="score-value" id="score-o">0</span>
+
+          <span class="score-label">平手次數</span>
+          <span class="score-value" id="score-draw">0</span>
+        </div>
       </div>
 
       <!-- 控制按鈕 -->
@@ -45,4 +54,3 @@
     <script src="script.js" defer></script>
   </body>
 </html>
-

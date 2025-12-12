@@ -3,15 +3,29 @@
     <head>
         <meta charset="UTF-8" />
         <title>1132915-HW09</title>
-        <link rel="stylesheet" href="hw09styles.css">
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <h1>XO 對電腦棋</h1>
-            <div id="status">玩家 (X) 先手</div>
-            <div id="board" class="board"></div>
-            <div class="controls">
-            <button onclick="resetGame()">重開一局</button>
-            </div>
-            <script src="hw09script.js"></script>
-    </body>
+  <div class="container">
+    <header class="header">
+      <h1>XO棋-電腦對戰</h1>
+      <p class="subtitle">玩家先手 X｜電腦後手 O</p>
+    </header>
+
+    <div id="status" class="status">玩家 (X) 先手</div>
+
+    <div class="board-wrap">
+      <div id="board" class="board"></div>
+    </div>
+
+    <div class="controls">
+      <button onclick="resetGame()">重開一局</button>
+    </div>
+
+    
+  </div>
+
+  <script src="hw09script.js"></script>
+</body>
+
 </html>

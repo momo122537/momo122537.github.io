@@ -1,181 +1,185 @@
 :root{
-    --bg: #0f172a;          /* 深藍背景 */
-    --card: rgba(255,255,255,0.08);
-    --border: rgba(255,255,255,0.14);
-    --text: #e5e7eb;
-    --muted: rgba(229,231,235,0.7);
+  --bg: #0b1220;
+  --card: rgba(255,255,255,0.08);
+  --border: rgba(255,255,255,0.14);
+  --text: #e5e7eb;
+  --muted: rgba(229,231,235,0.72);
 
-    --cell-bg: rgba(255,255,255,0.10);
-    --cell-hover: rgba(255,255,255,0.16);
-    --cell-border: rgba(255,255,255,0.18);
+  --accent: #38bdf8;
+  --accent2: #a78bfa;
 
-    --accent: #38bdf8;      /* 亮藍 */
-    --accent2: #a78bfa;     /* 紫 */
-    --danger: #fb7185;
+  --shadow: 0 22px 60px rgba(0,0,0,0.45);
+
+  --cell-bg: rgba(255,255,255,0.10);
+  --cell-hover: rgba(255,255,255,0.16);
+  --cell-border: rgba(255,255,255,0.18);
 }
 
-*{
-    box-sizing: border-box;
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+
+  background:
+    radial-gradient(900px 500px at 20% 10%, rgba(56,189,248,0.25), transparent 55%),
+    radial-gradient(800px 450px at 80% 20%, rgba(167,139,250,0.20), transparent 55%),
+    radial-gradient(700px 400px at 50% 90%, rgba(251,113,133,0.12), transparent 55%),
+    var(--bg);
+
+  display: grid;
+  place-items: center;
+  padding: 26px 14px;
 }
 
-body {
-    margin: 0;
-    min-height: 100vh;
-    font-family: "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
-    color: var(--text);
-    text-align: center;
+/* 卡片主體 */
+.container{
+  width: min(460px, 95vw);
+  padding: 18px 18px 16px;
+  border-radius: 22px;
 
-    /* 漸層背景 + 微光 */
-    background:
-        radial-gradient(900px 500px at 20% 10%, rgba(56,189,248,0.25), transparent 55%),
-        radial-gradient(800px 450px at 80% 20%, rgba(167,139,250,0.20), transparent 55%),
-        radial-gradient(700px 400px at 50% 90%, rgba(251,113,133,0.12), transparent 55%),
-        var(--bg);
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 28px 16px;
-    gap: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-h1 {
-    margin: 0;
-    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
-    letter-spacing: 1px;
-    font-weight: 800;
-    line-height: 1.1;
+/* 標題區 */
+.header{
+  text-align: center;
+  padding: 6px 6px 10px;
 }
 
-h1::after{
-    content: "";
-    display: block;
-    width: 72px;
-    height: 3px;
-    margin: 12px auto 0;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    opacity: 0.9;
+h1{
+  margin: 0;
+  font-size: 1.9rem;
+  letter-spacing: 1px;
+  font-weight: 900;
+  line-height: 1.1;
 }
 
-/* 狀態列（你 HTML 的 #status） */
-#status{
-    width: min(360px, 92vw);
-    margin-top: 6px;
-    padding: 10px 14px;
-    border-radius: 14px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-weight: 600;
-    letter-spacing: .5px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+.subtitle{
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
-/* 棋盤容器 */
-.board {
-    width: min(360px, 92vw);
-    aspect-ratio: 1 / 1;
-    margin: 16px auto 8px;
+/* 狀態列 */
+.status{
+  margin: 10px 6px 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
 
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 10px;
-
-    padding: 12px;
-    border-radius: 18px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid var(--border);
-    box-shadow: 0 18px 45px rgba(0,0,0,0.35);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: .4px;
 }
 
-/* 每一格 */
-.cell {
-    border-radius: 14px;
-    background: var(--cell-bg);
-    border: 1px solid var(--cell-border);
+/* 棋盤外框（讓棋盤有一個內嵌感） */
+.board-wrap{
+  margin: 0 6px;
+  padding: 12px;
+  border-radius: 18px;
 
-    font-size: clamp(2.2rem, 6vw, 3.2rem);
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    cursor: pointer;
-    user-select: none;
-
-    transition: transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
 }
 
-/* hover 的微抬起 */
-.cell:hover {
-    background-color: var(--cell-hover);
-    border-color: rgba(255,255,255,0.28);
-    transform: translateY(-2px);
+/* 棋盤本體 */
+.board{
+  width: 100%;
+  aspect-ratio: 1 / 1;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
 }
 
-/* 按下去 */
-.cell:active{
-    transform: translateY(0);
-}
-
-/* 讓 X / O 有不同顏色（依 innerText） */
-.cell:not(:empty){
-    cursor: default;
-}
-
-/* 用 text-shadow 做一點發光 */
+/* 格子 */
 .cell{
-    text-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  border-radius: 14px;
+  background: var(--cell-bg);
+  border: 1px solid var(--cell-border);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: clamp(2.2rem, 7vw, 3.2rem);
+  font-weight: 900;
+
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease;
+  text-shadow: 0 10px 22px rgba(0,0,0,0.35);
+}
+
+.cell:hover{
+  background: var(--cell-hover);
+  border-color: rgba(255,255,255,0.30);
+  transform: translateY(-2px);
+}
+
+.cell:active{ transform: translateY(0); }
+
+/* 已下過的格子不給 hover 浮起 */
+.cell:not(:empty){
+  cursor: default;
+  transform: none;
 }
 
 /* 控制區 */
-.controls {
-    margin-top: 12px;
+.controls{
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
 }
 
-/* 按鈕質感 */
+/* 按鈕 */
 .controls button{
-    appearance: none;
-    border: 1px solid rgba(255,255,255,0.22);
-    background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(167,139,250,0.18));
-    color: var(--text);
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(167,139,250,0.18));
+  color: var(--text);
 
-    padding: 10px 16px;
-    border-radius: 14px;
-    font-weight: 800;
-    letter-spacing: .5px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-weight: 900;
+  letter-spacing: .4px;
 
-    cursor: pointer;
-    transition: transform 0.12s ease, filter 0.2s ease, border-color 0.2s ease;
-    box-shadow: 0 12px 28px rgba(0,0,0,0.30);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.28);
 }
 
 .controls button:hover{
-    filter: brightness(1.12);
-    border-color: rgba(255,255,255,0.32);
-    transform: translateY(-1px);
+  filter: brightness(1.12);
+  border-color: rgba(255,255,255,0.34);
+  transform: translateY(-1px);
 }
 
-.controls button:active{
-    transform: translateY(0);
+.controls button:active{ transform: translateY(0); }
+
+/* 底部提示 */
+.footer{
+  margin-top: 14px;
+  padding: 10px 6px 2px;
+  color: rgba(229,231,235,0.65);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-align: center;
 }
 
-/* 小螢幕更緊湊 */
+/* 小螢幕再緊湊點 */
 @media (max-width: 420px){
-    #status{
-        padding: 9px 12px;
-    }
-    .board{
-        gap: 9px;
-        padding: 10px;
-    }
+  .container{ padding: 16px 14px 14px; }
+  h1{ font-size: 1.65rem; }
+  .board{ gap: 9px; }
 }

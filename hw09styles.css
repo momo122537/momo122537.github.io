@@ -1,39 +1,181 @@
+:root{
+    --bg: #0f172a;          /* 深藍背景 */
+    --card: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.14);
+    --text: #e5e7eb;
+    --muted: rgba(229,231,235,0.7);
+
+    --cell-bg: rgba(255,255,255,0.10);
+    --cell-hover: rgba(255,255,255,0.16);
+    --cell-border: rgba(255,255,255,0.18);
+
+    --accent: #38bdf8;      /* 亮藍 */
+    --accent2: #a78bfa;     /* 紫 */
+    --danger: #fb7185;
+}
+
+*{
+    box-sizing: border-box;
+}
+
 body {
-    font-family: "Microsoft JhengHei", sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
     text-align: center;
-    background-color: #f2f2f2;
+
+    /* 漸層背景 + 微光 */
+    background:
+        radial-gradient(900px 500px at 20% 10%, rgba(56,189,248,0.25), transparent 55%),
+        radial-gradient(800px 450px at 80% 20%, rgba(167,139,250,0.20), transparent 55%),
+        radial-gradient(700px 400px at 50% 90%, rgba(251,113,133,0.12), transparent 55%),
+        var(--bg);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 16px;
+    gap: 14px;
 }
 
 h1 {
-    color: #333;
+    margin: 0;
+    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+    letter-spacing: 1px;
+    font-weight: 800;
+    line-height: 1.1;
 }
 
+h1::after{
+    content: "";
+    display: block;
+    width: 72px;
+    height: 3px;
+    margin: 12px auto 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0.9;
+}
+
+/* 狀態列（你 HTML 的 #status） */
+#status{
+    width: min(360px, 92vw);
+    margin-top: 6px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: .5px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
+/* 棋盤容器 */
 .board {
-    width: 300px;
-    height: 300px;
-    margin: 20px auto;
+    width: min(360px, 92vw);
+    aspect-ratio: 1 / 1;
+    margin: 16px auto 8px;
+
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    gap: 5px;
+    gap: 10px;
+
+    padding: 12px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
+/* 每一格 */
 .cell {
-    background-color: white;
-    border: 2px solid #888;
-    font-size: 2em;
+    border-radius: 14px;
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+
+    font-size: clamp(2.2rem, 6vw, 3.2rem);
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
+
     cursor: pointer;
-    transition: background-color 0.3s;
+    user-select: none;
+
+    transition: transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
+/* hover 的微抬起 */
 .cell:hover {
-    background-color: #e0e0e0;
+    background-color: var(--cell-hover);
+    border-color: rgba(255,255,255,0.28);
+    transform: translateY(-2px);
 }
 
+/* 按下去 */
+.cell:active{
+    transform: translateY(0);
+}
+
+/* 讓 X / O 有不同顏色（依 innerText） */
+.cell:not(:empty){
+    cursor: default;
+}
+
+/* 用 text-shadow 做一點發光 */
+.cell{
+    text-shadow: 0 8px 20px rgba(0,0,0,0.35);
+}
+
+/* 控制區 */
 .controls {
-    margin-top: 10px;
+    margin-top: 12px;
 }
 
+/* 按鈕質感 */
+.controls button{
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.22);
+    background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(167,139,250,0.18));
+    color: var(--text);
+
+    padding: 10px 16px;
+    border-radius: 14px;
+    font-weight: 800;
+    letter-spacing: .5px;
+
+    cursor: pointer;
+    transition: transform 0.12s ease, filter 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.30);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.controls button:hover{
+    filter: brightness(1.12);
+    border-color: rgba(255,255,255,0.32);
+    transform: translateY(-1px);
+}
+
+.controls button:active{
+    transform: translateY(0);
+}
+
+/* 小螢幕更緊湊 */
+@media (max-width: 420px){
+    #status{
+        padding: 9px 12px;
+    }
+    .board{
+        gap: 9px;
+        padding: 10px;
+    }
+}

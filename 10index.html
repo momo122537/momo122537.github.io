@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>112915 -HW10</title>
+  <link rel="stylesheet" href="10.css" />
+  <script src="10script.js" defer></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="title">黑白棋（玩家黑棋先手 vs 電腦白棋）</div>
+         
+        </div>
+      </div>
+      <div class="controls">
+        <label class="small">電腦棋力：
+          <select id="difficulty">
+            <option value="basic">基本</option>
+            <option value="advanced">進階</option>
+          </select>
+        </label>
+        <label class="small">提示可下：
+          <select id="hints">
+            <option value="on">開</option>
+            <option value="off">關</option>
+          </select>
+        </label>
+        <button id="restart" class="danger">重新開始</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="boardCard">
+        <div class="row">
+          <div class="stat">
+            <span class="pill" id="turnPill">回合：玩家(黑)</span>
+            <span class="pill">黑：<span id="blackCount">2</span></span>
+            <span class="pill">白：<span id="whiteCount">2</span></span>
+          </div>
+          <div class="stat">
+            <span class="pill" id="statusPill">狀態：等待玩家落子</span>
+          </div>
+        </div>
+
+        <div id="board" class="board" role="grid" aria-label="Othello board"></div>
+      </div>
+
+       <div id="log" style="display:none;"></div>
+
+    </div>
+  </div>
+</body>
+</html>

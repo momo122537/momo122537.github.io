@@ -139,7 +139,6 @@
       <button id="newBtn">新局</button>
       <button class="pass-btn" id="passBtn">虛手(停一手)</button>
       <button class="ghost-btn" id="overlayBtn">活棋/地盤 顯示：關</button>
-      <button id="aiBtn">AI開關 (開)</button>
     </div>
 
     <div class="score">
@@ -169,31 +168,31 @@ class NineBoardGo {
     this.board = this.makeEmpty();
     this.currentPlayer = 1; // 1 black(user), -1 white(AI)
     this.consecutivePasses = 0;
-    this.aiEnabled = true;
+    this.aiEnabled = true; // 永遠你 vs 電腦
     this.gameOver = false;
 
     this.komi = 3.75;
 
-    // captures counters
-    this.captures = { black: 0, white: 0 }; // black captured white stones, white captured black stones
+    // ✅ 防幽靈：控制 loop / listener / timers
+    this.destroyed = false;
+    this.rafId = null;
+    this.timerIds = [];
+    this.canvasClickHandler = (e) => this.onCanvasClick(e);
 
-    // KO: forbid returning to previous position (simple ko)
+    this.captures = { black: 0, white: 0 };
     this.prevBoardHash = this.hashBoard(this.board);
-
     this.history = [];
     this.lastMove = null;
 
-    // overlays + warnings
     this.showOverlay = false;
-    this.atariHighlights = []; // [{stones:[[r,c]...], color: player}]
-    this.captureAnims = [];    // [{r,c,player,start,dur}]
+    this.atariHighlights = [];
+    this.captureAnims = [];
 
     this.canvas = document.getElementById("goboard");
     this.ctx = this.canvas.getContext("2d");
     this.padding = 46;
     this.cell = (this.canvas.width - this.padding*2) / (this.N - 1);
 
-    // 9路常用星位（四角星 + 天元）
     this.starPoints = [{r:2,c:2},{r:2,c:6},{r:6,c:2},{r:6,c:6},{r:4,c:4}];
 
     this.bindUI();
@@ -202,6 +201,34 @@ class NineBoardGo {
     this.updateStatus();
     this.updateScorePreview();
     this.startAnimLoop();
+  }
+
+  // ✅ 統一註冊 timeout，destroy() 會全部清掉
+  setTimer(fn, ms){
+    const id = setTimeout(() => {
+      if (this.destroyed) return;
+      fn();
+    }, ms);
+    this.timerIds.push(id);
+    return id;
+  }
+
+  // ✅ 新局前會呼叫，徹底停掉上一局一切活動
+  destroy(){
+    this.destroyed = true;
+
+    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+
+    for (const id of this.timerIds) clearTimeout(id);
+    this.timerIds = [];
+
+    if (this.canvas && this.canvasClickHandler){
+      this.canvas.removeEventListener("click", this.canvasClickHandler);
+    }
+
+    if (this.ctx && this.canvas){
+      this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    }
   }
 
   // ---------- basics ----------
@@ -215,24 +242,23 @@ class NineBoardGo {
       if(dr===0 && dc===0) continue;
       out.push([r+dr,c+dc]);
     }
-    return out;
+    return out.filter(([rr,cc])=>this.inBounds(rr,cc));
   }
   rcToXY(r,c){ return { x: this.padding + c*this.cell, y: this.padding + r*this.cell }; }
   hashBoard(b){ return b.map(row=>row.join(",")).join(";"); }
 
   bindUI(){
-    this.canvas.addEventListener("click", (e)=>this.onCanvasClick(e));
+    this.canvas.addEventListener("click", this.canvasClickHandler);
     document.getElementById("undoBtn").onclick = ()=>this.undo();
     document.getElementById("newBtn").onclick = ()=>newGame();
     document.getElementById("passBtn").onclick = ()=>this.pass();
-    document.getElementById("aiBtn").onclick = ()=>toggleAI();
     document.getElementById("handicapSel").onchange = ()=> newGame();
     document.getElementById("overlayBtn").onclick = ()=>this.toggleOverlay();
-
     document.getElementById("komi").textContent = String(this.komi);
   }
 
   toggleOverlay(){
+    if(this.destroyed) return;
     this.showOverlay = !this.showOverlay;
     document.getElementById("overlayBtn").textContent = `活棋/地盤 顯示：${this.showOverlay ? "開" : "關"}`;
     this.draw();
@@ -298,7 +324,6 @@ class NineBoardGo {
     const opp = -player;
     let capturedStones = [];
 
-    // capture opponent groups with 0 liberties
     for(const [nr,nc] of this.neighbors4(r,c)){
       if(nb[nr][nc]!==opp) continue;
       const g = this.getGroup(nb, nr, nc);
@@ -316,11 +341,9 @@ class NineBoardGo {
 
     const { nb } = this.applyMoveSim(this.board, r, c, player);
 
-    // suicide check
     const myGroup = this.getGroup(nb, r, c);
     if(myGroup.libs.size===0) return {ok:false,msg:"禁著點：自殺（無氣）"};
 
-    // simple KO check
     const newHash = this.hashBoard(nb);
     if(newHash === this.prevBoardHash) return {ok:false,msg:"禁著點：劫（需先在別處下一手）"};
 
@@ -355,43 +378,36 @@ class NineBoardGo {
   }
 
   updateAtariWarnings(lastPlayer){
-  // lastPlayer = 剛剛落子的人
-  this.atariHighlights = [];
+    this.atariHighlights = [];
+    const opp = -lastPlayer;
 
-  const opp = -lastPlayer;
+    const oppAtari = this.findAtariGroups(this.board, opp);
+    const selfAtari = this.findAtariGroups(this.board, lastPlayer);
 
-  const oppAtari = this.findAtariGroups(this.board, opp);
-  const selfAtari = this.findAtariGroups(this.board, lastPlayer);
+    for(const stones of oppAtari) this.atariHighlights.push({stones, kind:"opp"});
+    for(const stones of selfAtari) this.atariHighlights.push({stones, kind:"self"});
 
-  // highlight rings
-  for(const stones of oppAtari) this.atariHighlights.push({stones, kind:"opp"});
-  for(const stones of selfAtari) this.atariHighlights.push({stones, kind:"self"});
+    const nameOf = (p) => (p === 1 ? "黑方" : "白方");
 
-  const nameOf = (p) => (p === 1 ? "黑方" : "白方");
-
-  // 叫吃：被叫吃的是 opp（對手那一方）
-  let extra = "";
-  if(oppAtari.length > 0){
-    extra += `⚠️ 叫吃！${nameOf(opp)} 有 ${oppAtari.length} 塊只剩 1 氣。<br>`;
+    let extra = "";
+    if(oppAtari.length > 0){
+      extra += `⚠️ 叫吃！${nameOf(opp)} 有 ${oppAtari.length} 塊只剩 1 氣。<br>`;
+    }
+    if(selfAtari.length > 0){
+      extra += `⚠️ 小心！${nameOf(lastPlayer)} 有 ${selfAtari.length} 塊只剩 1 氣。<br>`;
+    }
+    return extra;
   }
-  if(selfAtari.length > 0){
-    extra += `⚠️ 小心！${nameOf(lastPlayer)} 有 ${selfAtari.length} 塊只剩 1 氣。<br>`;
-  }
-
-  return extra;
-}
-
 
   // ---------- Play move ----------
   tryPlay(r,c,player){
+    if(this.destroyed) return {ok:false,msg:"已重置"};
     if(this.gameOver) return {ok:false,msg:"已終局"};
     const chk = this.isLegalMove(r,c,player);
     if(!chk.ok) return chk;
 
-    // compute captures for animation / counts
     const { capturedStones } = this.applyMoveSim(this.board, r, c, player);
 
-    // snapshot for undo (store board + captures)
     this.history.push({
       board: this.cloneBoard(this.board),
       currentPlayer: this.currentPlayer,
@@ -401,16 +417,13 @@ class NineBoardGo {
       captures: { ...this.captures }
     });
 
-    // apply + update ko reference to "previous position"
     this.prevBoardHash = this.hashBoard(this.board);
     this.board = chk.nb;
 
-    // update capture counters
     if(capturedStones.length > 0){
       if(player === 1) this.captures.black += capturedStones.length;
       else this.captures.white += capturedStones.length;
 
-      // capture animation: fade out removed stones at their coords
       const now = performance.now();
       for(const [rr,cc] of capturedStones){
         this.captureAnims.push({ r: rr, c: cc, player: -player, start: now, dur: 420 });
@@ -421,10 +434,8 @@ class NineBoardGo {
     this.consecutivePasses = 0;
     document.getElementById("passCount").textContent = "0";
 
-    // switch turn
     this.currentPlayer = -player;
 
-    // update atari warnings
     const extra = this.updateAtariWarnings(player);
 
     this.draw();
@@ -435,9 +446,9 @@ class NineBoardGo {
   }
 
   onCanvasClick(e){
-    if(this.gameOver) return;
+    if(this.destroyed || this.gameOver) return;
 
-    // user plays black, unless handicap makes white to play first (still user is black: if white to play first, user must wait)
+    // 使用者只下黑棋
     if(this.currentPlayer !== 1) return;
 
     const {r,c} = this.pickIntersection(e);
@@ -446,37 +457,37 @@ class NineBoardGo {
     const res = this.tryPlay(r,c,1);
     if(!res.ok){
       this.setStatus(`🖤 黑棋：${res.msg}`, "status no-move");
-      setTimeout(()=>this.updateStatus(), 650);
+      this.setTimer(()=>this.updateStatus(), 650);
       return;
     }
 
     this.afterMove();
     if(this.aiEnabled && !this.gameOver && this.currentPlayer === -1){
-      setTimeout(()=>this.aiMove(), 220);
+      this.setTimer(()=>this.aiMove(), 220);
     }
   }
 
   afterMove(){
-    if(this.gameOver) return;
+    if(this.destroyed || this.gameOver) return;
 
     const canMove = this.hasAnyLegalMove(this.currentPlayer);
     const oppCanMove = this.hasAnyLegalMove(-this.currentPlayer);
 
     if(!canMove && !oppCanMove){
       this.setStatus("雙方都沒有合法棋步 → 自動終局", "status no-move");
-      setTimeout(()=>this.endGame("✅ 雙方全禁著點 / 無合法棋步，終局！"), 700);
+      this.setTimer(()=>this.endGame("✅ 雙方全禁著點 / 無合法棋步，終局！"), 700);
       return;
     }
 
     if(!canMove && oppCanMove){
       const who = this.currentPlayer===1 ? "🖤 黑棋" : "⚪ 白棋(AI)";
       this.setStatus(`${who} 沒有合法棋步 → 自動虛手`, "status no-move");
-      setTimeout(()=>this.pass(true), 650);
+      this.setTimer(()=>this.pass(true), 650);
     }
   }
 
   pass(isAuto=false){
-    if(this.gameOver) return;
+    if(this.destroyed || this.gameOver) return;
 
     this.history.push({
       board: this.cloneBoard(this.board),
@@ -495,11 +506,8 @@ class NineBoardGo {
       return;
     }
 
-    // switch player
-    const lastPlayer = this.currentPlayer;
     this.currentPlayer = -this.currentPlayer;
 
-    // atari highlight should reset (no last move stones), but still show if any groups atari
     this.atariHighlights = [];
     this.draw();
     this.updateScorePreview();
@@ -508,13 +516,14 @@ class NineBoardGo {
     this.afterMove();
 
     if(this.aiEnabled && !this.gameOver && this.currentPlayer === -1){
-      setTimeout(()=>this.aiMove(), isAuto ? 220 : 420);
+      this.setTimer(()=>this.aiMove(), isAuto ? 220 : 420);
     }
   }
 
   // ---------- AI ----------
   aiMove(){
-    if(this.gameOver || !this.aiEnabled || this.currentPlayer !== -1) return;
+    if(this.destroyed || this.gameOver || !this.aiEnabled || this.currentPlayer !== -1) return;
+
     if(!this.hasAnyLegalMove(-1)){
       this.pass(true);
       return;
@@ -539,7 +548,6 @@ class NineBoardGo {
   evaluateAIMove(r,c,simBoard){
     let s=0;
 
-    // capture estimate by stone count delta
     const before = this.countStones(this.board);
     const after  = this.countStones(simBoard);
     const capturedBlack = before.black - after.black;
@@ -548,7 +556,6 @@ class NineBoardGo {
     const g = this.getGroup(simBoard,r,c);
     s += Math.min(10, g.libs.size) * 6;
 
-    // prefer star/corner/edge
     const isStar = this.starPoints.some(p=>p.r===r && p.c===c);
     if(isStar) s += 16;
     const isCorner = (r===0||r===8) && (c===0||c===8);
@@ -556,12 +563,10 @@ class NineBoardGo {
     const isEdge = (r===0||r===8||c===0||c===8);
     if(isEdge) s += 4;
 
-    // fight near black
     for(const [nr,nc] of this.neighbors8(r,c)){
-      if(this.inBounds(nr,nc) && this.board[nr][nc]===1) s += 4;
+      if(this.board[nr][nc]===1) s += 4;
     }
 
-    // avoid self atari if possible
     const selfAtari = this.findAtariGroups(simBoard, -1);
     if(selfAtari.length>0) s -= 18 * selfAtari.length;
 
@@ -603,7 +608,7 @@ class NineBoardGo {
     return [];
   }
 
-  // ---------- Overlay: Alive/Dead + Territory ----------
+  // ---------- Overlay helpers ----------
   getEmptyRegions(board){
     const vis = Array(this.N).fill(0).map(()=>Array(this.N).fill(false));
     const regions = [];
@@ -631,7 +636,6 @@ class NineBoardGo {
     return regions;
   }
 
-  // Benson-ish unconditional life: iteratively remove blocks with <2 eyes
   removeDeadByBenson(board){
     let b = this.cloneBoard(board);
     const colors = [1,-1];
@@ -686,11 +690,10 @@ class NineBoardGo {
   }
 
   computeOverlayData(){
-    // alive/dead (by Benson) + territory (by surrounded empty regions)
     const cleaned = this.removeDeadByBenson(this.board);
 
-    const dead = []; // [[r,c],...]
-    const alive = []; // [[r,c],...]
+    const dead = [];
+    const alive = [];
     for(let r=0;r<this.N;r++){
       for(let c=0;c<this.N;c++){
         if(this.board[r][c]===0) continue;
@@ -718,10 +721,10 @@ class NineBoardGo {
 
   // ---------- Drawing ----------
   draw(){
+    if(this.destroyed) return;
     const ctx = this.ctx;
     ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
 
-    // grid lines
     ctx.lineWidth = 2;
     ctx.strokeStyle = "rgba(30,20,10,0.85)";
     for(let i=0;i<this.N;i++){
@@ -731,7 +734,6 @@ class NineBoardGo {
       ctx.beginPath(); ctx.moveTo(x, this.padding); ctx.lineTo(x, this.canvas.height - this.padding); ctx.stroke();
     }
 
-    // star points
     for(const p of this.starPoints){
       const {x,y} = this.rcToXY(p.r,p.c);
       ctx.beginPath();
@@ -740,14 +742,11 @@ class NineBoardGo {
       ctx.fill();
     }
 
-    // overlay (territory + alive/dead markers)
     if(this.showOverlay){
       const ov = this.computeOverlayData();
       this.drawTerritoryOverlay(ov);
-      // note: alive/dead markers drawn after stones for visibility
     }
 
-    // last move ring
     if(this.lastMove){
       const {x,y} = this.rcToXY(this.lastMove.r, this.lastMove.c);
       ctx.beginPath();
@@ -757,7 +756,6 @@ class NineBoardGo {
       ctx.stroke();
     }
 
-    // stones
     for(let r=0;r<this.N;r++){
       for(let c=0;c<this.N;c++){
         const v = this.board[r][c];
@@ -766,13 +764,9 @@ class NineBoardGo {
       }
     }
 
-    // capture animations (fade shrinking ghost)
     this.drawCaptureAnims();
-
-    // atari highlight rings
     this.drawAtariHighlights();
 
-    // alive/dead markers (on top)
     if(this.showOverlay){
       const ov = this.computeOverlayData();
       this.drawAliveDeadMarkers(ov);
@@ -803,7 +797,6 @@ class NineBoardGo {
 
   drawTerritoryOverlay(ov){
     const ctx = this.ctx;
-    // draw small dots on empty points to show territory ownership
     const drawDots = (pts, fillStyle) => {
       ctx.fillStyle = fillStyle;
       for(const [r,c] of pts){
@@ -813,7 +806,6 @@ class NineBoardGo {
         ctx.fill();
       }
     };
-
     drawDots(ov.blackTerr, "rgba(0,0,0,0.22)");
     drawDots(ov.whiteTerr, "rgba(255,255,255,0.20)");
     drawDots(ov.neutral,   "rgba(241,196,15,0.12)");
@@ -821,7 +813,6 @@ class NineBoardGo {
 
   drawAliveDeadMarkers(ov){
     const ctx = this.ctx;
-    // alive: green ring, dead: red X
     for(const [r,c] of ov.alive){
       const {x,y} = this.rcToXY(r,c);
       ctx.beginPath();
@@ -847,7 +838,6 @@ class NineBoardGo {
     if(!this.atariHighlights.length) return;
 
     for(const item of this.atariHighlights){
-      // ring each stone in that atari group
       const color = item.kind==="opp" ? "rgba(241,196,15,0.95)" : "rgba(230,126,34,0.95)";
       for(const [r,c] of item.stones){
         const {x,y} = this.rcToXY(r,c);
@@ -863,18 +853,16 @@ class NineBoardGo {
   drawCaptureAnims(){
     const ctx = this.ctx;
     const now = performance.now();
-    // filter out finished
     this.captureAnims = this.captureAnims.filter(a => now - a.start < a.dur);
 
     for(const a of this.captureAnims){
-      const t = (now - a.start) / a.dur; // 0..1
+      const t = (now - a.start) / a.dur;
       const alpha = 1 - t;
       const shrink = 1 - 0.7*t;
 
       const {x,y} = this.rcToXY(a.r, a.c);
       const radius = this.cell*0.40 * shrink;
 
-      // ghost stone
       ctx.save();
       ctx.globalAlpha = Math.max(0, alpha);
       const g = ctx.createRadialGradient(x-radius*0.25, y-radius*0.25, radius*0.2, x, y, radius);
@@ -887,18 +875,18 @@ class NineBoardGo {
 
   startAnimLoop(){
     const loop = () => {
-      // only redraw when needed: if animations exist, redraw
+      if (this.destroyed) return;
       if(this.captureAnims.length > 0){
         this.draw();
       }
-      requestAnimationFrame(loop);
+      this.rafId = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
+    this.rafId = requestAnimationFrame(loop);
   }
 
   // ---------- Status ----------
   updateStatus(extraHtml=""){
-    if(this.gameOver) return;
+    if(this.destroyed || this.gameOver) return;
 
     const playerName = this.currentPlayer===1 ? "🖤 黑棋" : "⚪ 白棋(AI)";
     const canMove = this.hasAnyLegalMove(this.currentPlayer);
@@ -912,7 +900,7 @@ class NineBoardGo {
 
   // ---------- Undo ----------
   undo(){
-    if(this.gameOver || this.history.length===0) return;
+    if(this.destroyed || this.gameOver || this.history.length===0) return;
     const snap = this.history.pop();
     this.board = this.cloneBoard(snap.board);
     this.currentPlayer = snap.currentPlayer;
@@ -976,12 +964,12 @@ class NineBoardGo {
   }
 
   endGame(reason){
+    if(this.destroyed) return;
     this.gameOver = true;
     document.getElementById("undoBtn").disabled = true;
     document.getElementById("passBtn").disabled = true;
     document.getElementById("handicapSel").disabled = true;
 
-    // final uses current board score (teacher can toggle overlay to see alive/dead + territory)
     const res = this.scoreArea(this.board);
     const b = res.score.blackScore;
     const w = res.score.whiteScore;
@@ -1006,24 +994,18 @@ class NineBoardGo {
 let game=null;
 
 function newGame(){
+  // ✅ 先殺掉上一局（停掉 rAF + timeout + click listener）
+  if (game) game.destroy();
+
   document.getElementById("undoBtn").disabled = false;
   document.getElementById("passBtn").disabled = false;
   document.getElementById("handicapSel").disabled = false;
 
   game = new NineBoardGo();
 
-  // handicap -> white to play, if AI on, let AI move first
-  if(game.aiEnabled && !game.gameOver && game.currentPlayer === -1){
-    setTimeout(()=>game.aiMove(), 200);
-  }
-}
-
-function toggleAI(){
-  if(!game) return;
-  game.aiEnabled = !game.aiEnabled;
-  document.getElementById("aiBtn").textContent = game.aiEnabled ? "AI開關 (開)" : "AI開關 (關)";
-  if(game.aiEnabled && !game.gameOver && game.currentPlayer === -1){
-    setTimeout(()=>game.aiMove(), 200);
+  // ✅ 讓子時白先：直接讓 AI 先下（用 setTimer 也能被 destroy 清掉）
+  if(!game.gameOver && game.currentPlayer === -1){
+    game.setTimer(()=>game.aiMove(), 200);
   }
 }
 
